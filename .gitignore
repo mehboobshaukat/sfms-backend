@@ -1,0 +1,38 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+*.log
+.DS_Store
+dist/
+build/
+.pytest_cache/
+
+archive/
+docs/
+tests/
+
+# User-uploaded profile images
+media/
+
+# Python testing and coverage
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Environment files
+.env.*
+!.env.example
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Operating system files
+Thumbs.db
+Desktop.ini
