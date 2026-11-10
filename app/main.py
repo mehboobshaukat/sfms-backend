@@ -31,7 +31,7 @@ app = FastAPI(
 )
 
 # Serve optional profile images without changing the existing API structure.
-Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
+if settings.APP_ENV != "production": Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
 app.mount(settings.MEDIA_URL, StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 
 
