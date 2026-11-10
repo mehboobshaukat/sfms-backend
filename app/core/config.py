@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     MEDIA_ROOT: str = "media"
     MEDIA_URL: str = "/media"
     MAX_PROFILE_IMAGE_MB: int = 1
+    # Feature switch for profile-image uploads. Default False: uploads are
+    # rejected and registration ignores any `profile_image`. Existing stored
+    # images are still served and can still be removed. Set to true to re-enable.
+    PROFILE_IMAGE_ENABLED: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

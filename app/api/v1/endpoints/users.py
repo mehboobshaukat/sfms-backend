@@ -2,6 +2,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_current_user_allow_pending_deletion
 from app.crud import auth_service
@@ -99,6 +100,8 @@ async def upload_profile_image(
     db: Session = Depends(get_db),
 ):
     """Optional profile image; JPEG/PNG/WebP, limited by MAX_PROFILE_IMAGE_MB."""
+    if not settings.PROFILE_IMAGE_ENABLED:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Profile image uploads are currently disabled.")
     new_url = await save_profile_image(profile_image)
     old_url = current_user.profile_image_url
     try:

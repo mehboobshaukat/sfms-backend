@@ -87,7 +87,7 @@ async def register(request: Request, db: Session = Depends(get_db)):
     saved_profile_image_url: str | None = None
 
     try:
-        if profile_image is not None:
+        if profile_image is not None and settings.PROFILE_IMAGE_ENABLED:
             saved_profile_image_url = await save_profile_image(profile_image)
 
         user = auth_service.register_user(
