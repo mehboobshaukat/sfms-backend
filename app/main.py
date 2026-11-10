@@ -30,9 +30,19 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# Serve optional profile images without changing the existing API structure.
-if settings.APP_ENV != "production": Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
-app.mount(settings.MEDIA_URL, StaticFiles(directory=settings.MEDIA_ROOT), name="media")
+
+if settings.APP_ENV != "production":
+    Path(settings.MEDIA_ROOT).mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    app.mount(
+        settings.MEDIA_URL,
+        StaticFiles(directory=settings.MEDIA_ROOT),
+        name="media"
+    )
+
 
 
 @app.on_event("startup")
