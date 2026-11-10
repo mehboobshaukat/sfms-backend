@@ -31,17 +31,22 @@ app = FastAPI(
 )
 
 
+# Optional profile-image storage. Never let it crash startup: on Vercel the
+# project folder is read-only (MEDIA_ROOT points to /tmp there, see config.py).
 if settings.APP_ENV != "production":
-    Path(settings.MEDIA_ROOT).mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    try:
+        Path(settings.MEDIA_ROOT).mkdir(
+            parents=True,
+            exist_ok=True
+        )
 
-    app.mount(
-        settings.MEDIA_URL,
-        StaticFiles(directory=settings.MEDIA_ROOT),
-        name="media"
-    )
+        app.mount(
+            settings.MEDIA_URL,
+            StaticFiles(directory=settings.MEDIA_ROOT),
+            name="media"
+        )
+    except OSError as exc:
+        print(f"[startup] Media folder unavailable, skipping /media mount: {exc}")
 
 
 
