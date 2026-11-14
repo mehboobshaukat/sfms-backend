@@ -53,7 +53,16 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:3000"
 
-    # Email verification SMTP settings.
+    # Primary transactional email sender (HTTPS API, sends from your own domain).
+    # When RESEND_API_KEY is set, ALL emails go out through it first.
+    # If the API call fails (or no key is set) the SMTP settings below are used
+    # as the fallback.
+    RESEND_API_KEY: str = ""
+    RESEND_API_URL: str = "https://api.resend.com/emails"
+    # Must be an address on a domain that is verified in the email provider.
+    EMAIL_FROM_ADDRESS: str = "no-reply@sfms.xyz"
+
+    # SMTP settings - fallback sender (and the only sender if no API key is set).
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -69,6 +78,8 @@ class Settings(BaseSettings):
     # Public frontend origin used for browser-facing verification links.
     # Example in production: https://app.example.com
     PUBLIC_FRONTEND_URL: str = "http://localhost:5173"
+    # Frontend route that reads ?token=... and shows the new-password form.
+    PASSWORD_RESET_PATH: str = "/reset-password"
 
     # Local profile-image storage. These are additive and do not change any
     # existing API route. MEDIA_URL is mounted by app/main.py.

@@ -62,6 +62,10 @@ Copy `.env.example` to `.env` and fill in the values:
 | `DATABASE_URL` | Supabase PostgreSQL connection string (`postgresql+psycopg2://...`) |
 | `JWT_SECRET_KEY` | A long, random, secret key |
 | `AI_API_KEY` | API key for the AI Assistant |
+| `RESEND_API_KEY` | Primary email sender API key (emails go out from `EMAIL_FROM_ADDRESS`) |
+| `EMAIL_FROM_ADDRESS` | Sender address on your verified domain, default `no-reply@sfms.xyz` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP fallback, used only if the primary API fails or has no key |
+| `PASSWORD_RESET_PATH` | Frontend route for the reset page, default `/reset-password` |
 
 Never push your `.env` file to GitHub (make sure it is listed in `.gitignore`).
 

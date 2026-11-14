@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
@@ -166,12 +166,19 @@ def resend_verification(request: Request, payload: ResendVerificationRequest, db
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("3/minute")
-def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """
     Always returns 202 regardless of whether the email exists (prevents
-    account enumeration). Existing password-reset behavior is unchanged.
+    account enumeration). The reset email is sent in the background.
     """
-    auth_service.request_password_reset(db, str(payload.email))
+    ticket = auth_service.request_password_reset(db, str(payload.email))
+    if ticket:
+        background_tasks.add_task(auth_service.deliver_password_reset_email, ticket)
     return {"detail": "If that email exists, a reset link has been sent."}
 
 

@@ -3,8 +3,10 @@ Authentication business logic — registration, login (with account lockout),
 refresh-token rotation, email verification, forgot/reset password.
 """
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import NamedTuple
 
 from fastapi import HTTPException, status
 from sqlalchemy import select, func, update
@@ -12,7 +14,7 @@ from sqlalchemy.orm import Session
 from jwt.exceptions import InvalidTokenError
 
 from app.core.config import settings
-from app.core.email import EmailDeliveryError, send_verification_email
+from app.core.email import EmailDeliveryError, send_password_reset_email, send_verification_email
 from app.core.security import (
     hash_password,
     verify_password,
@@ -23,6 +25,8 @@ from app.core.security import (
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
 from app.crud.seed import seed_user_defaults
+
+logger = logging.getLogger(__name__)
 
 
 def _hash_one_time_token(token: str) -> str:
@@ -313,19 +317,45 @@ def resend_verification_email(db: Session, email: str) -> None:
         ) from exc
 
 
-def request_password_reset(db: Session, email: str) -> str | None:
-    """Returns the reset token (caller/endpoint emails it) or None if the email doesn't exist (no enumeration leak)."""
-    user = db.query(User).filter(User.email == email).first()
+class PasswordResetTicket(NamedTuple):
+    recipient: str
+    first_name: str
+    token: str  # raw token - goes into the email only, the DB keeps the hash
+
+
+def request_password_reset(db: Session, email: str) -> PasswordResetTicket | None:
+    """Creates a one-hour reset token and returns what is needed to email it.
+
+    Returns None if the account doesn't exist (no enumeration leak). Only the
+    SHA-256 digest of the token is stored, like email-verification tokens.
+    """
+    user = (
+        db.query(User)
+        .filter(func.lower(User.email) == email.lower(), User.is_deleted == False)  # noqa: E712
+        .first()
+    )
     if not user:
         return None
-    user.reset_token = secrets.token_urlsafe(32)
+    raw_token = secrets.token_urlsafe(32)
+    user.reset_token = _hash_one_time_token(raw_token)
     user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
     db.commit()
-    return user.reset_token
+    return PasswordResetTicket(user.email, user.first_name or user.username, raw_token)
+
+
+def deliver_password_reset_email(ticket: PasswordResetTicket) -> None:
+    """Runs as a background task so the response time never reveals whether the
+    account exists. Failures are logged, never surfaced to the caller."""
+    try:
+        send_password_reset_email(
+            recipient=ticket.recipient, first_name=ticket.first_name, token=ticket.token
+        )
+    except EmailDeliveryError:
+        logger.exception("Password reset email could not be delivered")
 
 
 def reset_password(db: Session, token: str, new_password: str) -> User:
-    user = db.query(User).filter(User.reset_token == token).first()
+    user = db.query(User).filter(User.reset_token == _hash_one_time_token(token)).first()
     if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.now(timezone.utc):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token.")
     user.password_hash = hash_password(new_password)
